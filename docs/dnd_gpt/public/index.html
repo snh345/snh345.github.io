@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.1/socket.io.js"
+    integrity="sha512-oFOCo2/3DtjrJG4N27BjSLQWoiBv171sK6a+JiWjp/7agxC2nCUP358AqzxkBUb5jX8g6CYLPdSKQTbC0weCwA=="
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <!-- todo: onchange, populate global variable:
+  https://stackoverflow.com/questions/574941/best-way-to-track-onchange-as-you-type-in-input-type-text -->
+  <!-- todo: onclick, set display to none -->
+  <!-- also look into CSS animations? -->
+  <div id="overlay" style="pointer-events: all;""></div>
+    <div class=" center">
+    <form id="characterForm">
+      <div style="position:relative; padding: 12px 20px; margin: 8px 0; box-sizing: border-box;"></div>
+      <input type="input" type="text" id="characterInput" placeholder="your character's name" />
+      <!-- <input class="input" type="text" display="block" style="height: 50px" id="characterBackstory" placeholder="your character's backstory" /> -->
+      <div class="col-75">
+        <textarea id="characterBackstory" name="subject" placeholder="your character's backstory"
+          style="height:200px"></textarea>
+      </div>
+      <button class="btn" type="submit" id="charBtn">Create Your Character</button>
+  </div>
+  </form>
+  <button class="btn" id="startBtn">Begin Your Adventure</button>
+  <form id="storyForm">
+    <div id="story"></div>
+  </form>
+  <form id="messageForm">
+    <input class="input center" type="text" id="messageInput" />
+    <button class="btn" type="submit" id="sendBtn">Send!</button>
+  </form>
+  </div>
+  <script>
+
+
+    const messageForm = document.getElementById("messageForm");
+    const charForm = document.getElementById("characterForm");
+    const btn = document.getElementById("startBtn");
+    const storyForm = document.getElementById("storyForm");
+
+    const storyBox = document.getElementById("story");
+
+    const btnSelecter = "Create a branching choice in the story with two to four options. present the choices in this way: <button>choice 1</button><button>choice 2</button>, etc";
+    const textSelecter = "Ask one of the characters an open-ended question pertaining to plot of the story";
+    
+    let responseArray = [btnSelecter, textSelecter];
+    var socket = io.connect();
+    var i = 0;
+    var myResponseText;
+
+    var thecanvas, thecontext;
+    let video;
+    let constraints = { audio: false, video: true };
+
+    window.addEventListener('load', function () {
+
+      // The video element on the page to display the webcam
+      video = document.getElementById('vid');
+
+      // Constraints - what do we want?
+
+      // Prompt the user for permission, get the stream
+      navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+        /* Use the stream */
+
+        // Attach to our video object
+        video.srcObject = stream;
+
+        // Wait for the stream to load enough to play
+        video.onloadedmetadata = function (e) {
+          video.play();
+          //console.log(video.toDataURL());
+        };
+      })
+        .catch(function (err) {
+          /* Handle the error */
+          alert(err);
+        });
+
+      // Canvas element on the page
+      thecanvas = document.getElementById('thecanvas');
+      thecontext = thecanvas.getContext('2d');
+
+      //draw();
+
+    });
+
+    var draw = function () {
+        // Draw the video onto the canvas
+        thecontext.drawImage(video, 0, 0, 100, 100);
+        //console.log("should be drawing");
+
+        socket.emit('image', thecanvas.toDataURL());
+
+
+        // Draw again in 3 seconds
+        //setTimeout(draw, 3000);
+      };
+
+
+    // thecanvas = document.getElementById('thecanvas');
+    // thecontext = thecanvas.getContext('2d');
+
+    socket.on('gpt-response', function (data) {
+      console.log(data.message);
+      // let i = data.message.length;
+      // typeWriter(i, data.message);
+      storyBox.innerHTML += "<pre><p>" + data.message + "</p></pre>";
+    });
+
+    socket.on('character-name', function (data) {
+      document.getElementById('characterDisplay').append(data+"<br>");
+    });
+
+    socket.on('character-backstory', function (data) {
+      document.getElementById('characterDisplay').append(data+"<br>");
+    });
+
+    socket.on('img', function (data) {
+      let temp = document.createElement("canvas");
+      temp.src = data;
+      document.getElementById("characterDisplay").append(temp);
+    })
+
+    //code absolutely SWIPED from:
+    //https://github.com/adrianhajdin/project_openai_codex/blob/main/client/script.js
+    function typeText(element, text) {
+      let index = 0
+      let interval = setInterval(() => {
+        if (index < text.length) {
+          element.innerHTML += text.charAt(index)
+          if (text.charAt(index) == "\n") {
+            element.innerHTML += '\n';
+          }
+          index++;
+        } else {
+          clearInterval(interval)
+        }
+      }, 20)
+    }
+
+    btn.addEventListener("click", beginGame);
+    function beginGame() {
+      socket.emit("begin-game",
+        {
+          user: socket.id,
+          message: "create the beginning of a dungeons and dragon campaign using the characters I created as protagonists. You are the dungeon master, a mystical narrator with a passion for storytelling. Give me a vivid and detailed introduction to the world. Then, " + btnSelecter
+        });
+    }
+
+    function myFunction() {
+      document.getElementById("demo").innerHTML = "Hello World";
+    }
+
+    messageForm.addEventListener("submit", (e) => {
+      // avoids submit the form and refresh the page
+      e.preventDefault();
+
+      const messageInput = document.getElementById("messageInput");
+
+      // check if there is a message in the input
+      if (messageInput.value !== "") {
+        let newMessage = messageInput.value;
+        console.log(newMessage);
+        //sends message and our id to socket server
+        socket.emit("gpt-msg", { user: socket.id, message: newMessage });
+        messageInput.value = "";
+      }
+    });
+
+    charForm.addEventListener("submit", (e) => {
+      // avoids submit the form and refresh the page
+      e.preventDefault();
+
+      const charInput = document.getElementById("characterInput");
+      const charBackstory = document.getElementById("characterBackstory");
+
+      // check if there is a message in the input
+      if (charInput.value !== "" && charBackstory.value !== "") {
+        let newMessage = charInput.value;
+        let newMessage2 = charBackstory.value;
+        console.log(newMessage);
+        //sends message and our id to socket server
+        socket.emit("char-msg",
+          {
+            user: socket.id,
+            message: "this is a new Dungeons & Dragons Character: " + newMessage
+              + ". This is the character's backstory: " + newMessage2
+          });
+
+
+        socket.emit('name', newMessage);
+        socket.emit('backstory', newMessage2);
+        draw(); //also sends a picture object, or at least it should
+
+        charInput.value = "";
+        charBackstory.value = "";
+        document.getElementById("characterForm").hidden = true;
+        // document.getElementById("characterDisplay").append("<b>"+newMessage+"</b>");
+        // document.getElementById("characterDisplay").append("<i>"+newMessage2+"</i>");
+      }
+    });
+
+    storyForm.addEventListener("submit", (e) => {
+    // avoids submit the form and refresh the page
+    e.preventDefault();
+    //debugger
+
+    let returnedVal = document.activeElement.innerHTML;
+    let text;
+    if (Math.random()<0.5){text = btnSelecter;}else{text=textSelecter;}
+
+      console.log(returnedVal);
+      socket.emit("gpt-msg", 
+        { user: socket.id, 
+          message: returnedVal+". significantly progress the story. "+text});
+  });
+
+  </script>
+  <video id="vid"></video>
+  <div id="characters"</div>
+  <canvas id="thecanvas" width="100" height="100"></canvas>
+  <p id="characterDisplay"></p>
+</body>
+</html>
