@@ -34,6 +34,7 @@ let p1, p2;
 let water,water2,water3,water4,water5,water6,water7,water8;
 let waterGroup1, waterGroup2, waterGroup3, waterGroup4;
 let floorGroup;
+let house;
 //need mixer or clock here?
 let composer;
 let pot,window1,me, sofa;
@@ -134,10 +135,29 @@ mtlLoader.load("OBJ/driver+corneta_01.mtl", function(materials)
 		s2.position.set(-5,-20,-10);
 		speakGroup.add(speaker);
 		speakGroup.add(s2);
+		speakGroup.position.set(48,0,0);
         scene.add( speakGroup );
 		//console.log("hello?")
     });
 });
+
+    loader.load("house/housefix3.obj", function(object)
+    {    
+        house = object;
+		house.rotateX(Math.PI);
+		//house.rotateY(Math.PI/4);
+		// speaker.rotateX(Math.PI/2);
+		// speaker.scale.set(10,10,10);
+		house.position.set(14,28,0);
+		house.scale.set(0.75,0.75,0.75);
+		// let s2 = speaker.clone();
+		// s2.position.set(-5,-20,-10);
+		// speakGroup.add(speaker);
+		// speakGroup.add(s2);
+        scene.add( house );
+		camera.lookAt(house);
+		//console.log("hello?")
+    });
 
 //this is for the cooking pot in the kitchen area
 mtlLoader.load("pot20l_obj/pot20l_v2.mtl", function(materials)
@@ -165,8 +185,8 @@ mtlLoader.load("scan_of_me_poly/textured.mtl", function(materials)
 		me = object;
 		scene.add(me);
 		me.scale.set(5,5,5);
-		me.position.set(48,30,15);
-		me.rotateY(Math.PI/2);
+		me.position.set(48,30,20);
+		me.rotateY(Math.PI*3/4);
 		//console.log("hello?")
     });
 });
@@ -199,8 +219,10 @@ mtlLoader.load("sofa/sofa.mtl", function(materials)
     {    
 		sofa = object;
 		sofa.scale.set(0.05,0.05,0.05);
-		sofa.position.set(-5,48,0);
-		sofa.rotateY(Math.PI/2);
+
+		//setting position of sofa
+		sofa.position.set(25,24,25);
+		sofa.rotateY(Math.PI);
 		scene.add(sofa);
 		// pot.scale.set(20,20,20);
 		// pot.position.set(0,3,15);
@@ -237,15 +259,18 @@ loader.load('lightwave stairs/objects/stairs.lwo.obj', function ( object ) {
 	    scene.add(stairGroup);
 
 		//here's where the things are
-		stairGroup.position.set(15,0,-10);
-		stairGroup2.position.set(33,24,10);
+		stairGroup.position.set(11,0,-10);
+		stairGroup2.position.set(24,24,4);
 		stairGroup.rotateY(-Math.PI/2);
 		stairGroup2.rotateY(Math.PI/2);
-		stairGroup3.position.set(0,48,-25);
-		stairGroup4.position.set(-12,-23,10);
+		stairGroup3.position.set(33,-24,10);
+		stairGroup3.rotateY(Math.PI/2);
+
+		//I think this is the basement
+		stairGroup4.position.set(20,-23,1);
 		scene.add(stairGroup2);
 		scene.add(stairGroup3);
-		scene.add(stairGroup4);
+		//scene.add(stairGroup4);
 		
 	},
 	function ( xhr ) {
@@ -429,8 +454,8 @@ light2.position.set( 48, 60, 8 );
 light2.lookAt(48,30,15);
 scene.add(light2);
 
-dLightHelper = new THREE.DirectionalLightHelper(light);
-scene.add(dLightHelper);
+// dLightHelper = new THREE.DirectionalLightHelper(light);
+// scene.add(dLightHelper);
   
 light.shadow.mapSize.width = 512; // default
 light.shadow.mapSize.height = 512; // default
@@ -451,11 +476,23 @@ function loadPlanes(){
 	p1 = new THREE.Mesh(pg,m1);
 	p2 = new THREE.Mesh(pg,m1);
 	let p3 = new THREE.Mesh(pg,m1);
-	p2.position.set(48,24,0);
-	p3.position.set(0,48,0);
+	let p4 = new THREE.Mesh(pg,m1);
+	p2.position.set(45,24,0);
+
+	//top floor
+	p3.rotateY(Math.PI/2);
+	p3.position.set(35,24,15);
+	p3.scale.set(1.5,1,1);
+
+	//ground floor
+	p1.position.set(0,0,3);
+
+	//bo'om floh
+	p4.position.set(48,-24,0);
 	floorGroup.add(p1);
 	floorGroup.add(p2);
 	floorGroup.add(p3);
+	floorGroup.add(p4);
 	scene.add(floorGroup);
 	}
 
@@ -469,7 +506,7 @@ function addSpatialAudio(){
 	for (let i = 1; i < 6; i++) {
 		let mesh = new THREE.Mesh(
 		  new THREE.SphereGeometry(1, 12, 12),
-		  new THREE.MeshBasicMaterial({ transparent: true })
+		  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.0 })
 		);
 	
 		let audioSource = new THREE.PositionalAudio(audioListener);
@@ -497,25 +534,27 @@ function addSpatialAudio(){
 	  }
 	  //placing all the audiosources where they're meant to be in our scene
 	//band goes in the basement - 0,-20,-10
+	  audioSources[0].translateX(48);
 	  audioSources[0].translateY(-20);
 	  audioSources[0].translateZ(-5);
 
-	  //audioSource 1 on top of "me" - 48,30,15
+	  //audioSource 1 on top of "me" - 48,30,20
 	  audioSources[1].translateX(48);
 	  audioSources[1].translateY(30);
-	  audioSources[1].translateZ(15);
+	  audioSources[1].translateZ(20);
 
 	  //audioSource 2 is on the pot in the kitchen - 0,3,15
 	  audioSources[4].translateY(3);
 	  audioSources[4].translateZ(15);
 
-	  //audioSource 4 on the couch - -5,48,0
-	  audioSources[3].translateX(-5);
-	  audioSources[3].translateY(48);
+	  //audioSource 4 on the couch - 25,24,25
+	  audioSources[3].translateX(25);
+	  audioSources[3].translateY(24);
+	  audioSources[3].translateZ(25);
 
-	  //audioSource2 up on the top of the stairs - 0 ,64, -30;
-	  audioSources[2].translateY(64);
-	  audioSources[2].translateZ(-30);
+	  //audioSource2 up on the top of the stairs - 0 ,64, -30;;
+	  audioSources[2].translateY(48);
+	  audioSources[2].translateZ(4);
 }
 
 
